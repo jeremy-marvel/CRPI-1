@@ -62,19 +62,32 @@ namespace crpi_robot
     {
       strcpy(outbuffer,"Grasp");
       send = ulapi_socket_write(server, outbuffer, sizeof(outbuffer));
-      Sleep(50);
+#ifdef WIN32
+    Sleep (50);
+#else
+    usleep(50000);
+#endif 
+      
     }
     else if (percent == 0) 
     {
       strcpy(outbuffer,"Pause");
       send = ulapi_socket_write(server, outbuffer, sizeof(outbuffer));
-      Sleep(50);
+#ifdef WIN32
+    Sleep (50);
+#else
+    usleep(50000);
+#endif 
     }
     else if (percent == -1) 
     {
       strcpy(outbuffer,"Stop");
       send = ulapi_socket_write(server, outbuffer, sizeof(outbuffer));
-      Sleep(50);
+#ifdef WIN32
+    Sleep (50);
+#else
+    usleep(50000);
+#endif 
       //get = ulapi_socket_read(server, inbuffer, MSG_SIZE);
       //cout << inbuffer << endl;
     }
@@ -101,7 +114,7 @@ namespace crpi_robot
     return CANON_REJECT;
   }
 
-  LIBRARY_API CanonReturn CrpiSchunkSDH::MoveStraightTo (robotPose &pose)
+  LIBRARY_API CanonReturn CrpiSchunkSDH::MoveStraightTo (robotPose &pose, bool useBlocking)
   {
     //! Not supported
     return CANON_REJECT;
@@ -119,7 +132,7 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiSchunkSDH::MoveTo (robotPose &pose)
+  LIBRARY_API CanonReturn CrpiSchunkSDH::MoveTo (robotPose &pose, bool useBlocking)
   {
     //! Not supported
     return CANON_REJECT;
@@ -191,7 +204,7 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiSchunkSDH::MoveToAxisTarget (robotAxes &axes)
+  LIBRARY_API CanonReturn CrpiSchunkSDH::MoveToAxisTarget (robotAxes &axes, bool useBlocking)
   {
     std::ostringstream sstream;
     std::string AngleAsString;
@@ -209,7 +222,11 @@ namespace crpi_robot
 
     send = ulapi_socket_write(server, outbuffer, sizeof(outbuffer));
 
-    Sleep(50);
+#ifdef WIN32
+    Sleep (50);
+#else
+    usleep(50000);
+#endif 
     
     strcpy(outbuffer,"");
 
@@ -293,7 +310,11 @@ namespace crpi_robot
 
       send = ulapi_socket_write(server, outbuffer, sizeof(outbuffer));
 
-      Sleep(50);
+#ifdef WIN32
+    Sleep (50);
+#else
+    usleep(50000);
+#endif 
 
       get = ulapi_socket_read(server, inbuffer, MSG_SIZE);
 
@@ -308,7 +329,11 @@ namespace crpi_robot
     else if (val == 0) {strcpy(outbuffer, "0");} //no closing fingers
 
     send = ulapi_socket_write(server, outbuffer, sizeof(outbuffer));
-    Sleep(50);
+#ifdef WIN32
+    Sleep (50);
+#else
+    usleep(50000);
+#endif 
   }
 
     strcpy(outbuffer,"");
@@ -349,6 +374,28 @@ namespace crpi_robot
   {
     //! TODO
     return CANON_FAILURE;
+  }
+
+  
+  LIBRARY_API CanonReturn CrpiSchunkSDH::MoveBase (robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
+  LIBRARY_API CanonReturn CrpiSchunkSDH::PointHead (robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
+  LIBRARY_API CanonReturn CrpiSchunkSDH::PointAppendage (CanonRobotAppendage app_ID,
+                                                         robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
   }
 
 } // crpi_robot

@@ -103,9 +103,36 @@ namespace crpi_robot
   LIBRARY_API CanonReturn CrpiAllegro::ApplyCartesianForceTorque (robotPose &robotForceTorque, vector<bool> activeAxes, vector<bool> manipulator)
   {
     //This assumes that all toggled fingers will experience the same force/torque and active axes commands, unless disengaged with the manipulator command
+    
+    //Updated for linux compilation and also code safety
+#if defined(__GNUC__)
+    string one,two;
+    one = "Control"; two = "finger_force";
+    //const char *
+    const char * varctl = one.c_str();
+    //char *
+    char * varff = new char[two.size() + 1];
+    copy(two.begin(),two.end(),varff);
+    varff[two.size()] = '\0'; //terminating 0
+
+    SetParameter(varctl,varff);
+
+    one = "Plan"; two = "set_point";
+    //const char *
+    const char * varpln = one.c_str();
+    //char *
+    char * varsp = new char[two.size() + 1];
+    copy(two.begin(),two.end(),varsp);
+    varsp[two.size()] = '\0'; //terminating 0
+    
+    SetParameter(varpln,varsp);  
+
+    delete[] varff;
+    delete[] varsp;
+#elif defined(_MSC_VER)
     SetParameter("Control","finger_force");
     SetParameter("Plan","set_point"); //will need to change this to file for finger trajectory tracking for greater command bandwidth
-    
+#endif
     std::ostringstream sstream;
     std::string ForcesAsString;
     double forces[12] = {0};
@@ -134,7 +161,11 @@ namespace crpi_robot
     }
 
     send = ulapi_socket_write(server_config, outbuffer, sizeof(outbuffer));
-    Sleep(3);
+#ifdef WIN32
+    Sleep (3);
+#else
+    usleep(3000);
+#endif    
 
     strcpy(outbuffer,"");
     
@@ -156,7 +187,7 @@ namespace crpi_robot
     return CANON_REJECT;
   }
 
-  LIBRARY_API CanonReturn CrpiAllegro::MoveStraightTo (robotPose &pose)
+  LIBRARY_API CanonReturn CrpiAllegro::MoveStraightTo (robotPose &pose, bool useBlocking)
   {
     return CANON_REJECT;
   }
@@ -172,7 +203,7 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiAllegro::MoveTo (robotPose &pose)
+  LIBRARY_API CanonReturn CrpiAllegro::MoveTo (robotPose &pose, bool useBlocking)
   {
     return CANON_REJECT;
   }
@@ -184,7 +215,12 @@ namespace crpi_robot
     strcpy(outbuffer,"joint_angles");
 
     send = ulapi_socket_write(server_feedback, outbuffer, MSG_SIZE);
-    Sleep(10);
+#ifdef WIN32
+        Sleep (10);
+#else
+        usleep(10000);
+#endif
+    
     
     strcpy(inbuffer,"");
     get = ulapi_socket_read(server_feedback, inbuffer, MSG_SIZE);
@@ -224,7 +260,12 @@ namespace crpi_robot
     strcpy(outbuffer,"cart_force");
 
     send = ulapi_socket_write(server_feedback, outbuffer, MSG_SIZE);
-    Sleep(10);
+#ifdef WIN32
+        Sleep (10);
+#else
+        usleep(10000);
+#endif
+    
     
     strcpy(inbuffer,"");
     get = ulapi_socket_read(server_feedback, inbuffer, MSG_SIZE);
@@ -266,7 +307,11 @@ namespace crpi_robot
     strcpy(outbuffer,"cart_pose");
 
     send = ulapi_socket_write(server_feedback, outbuffer, MSG_SIZE);
-    Sleep(10);
+#ifdef WIN32
+        Sleep (10);
+#else
+        usleep(10000);
+#endif
     
     strcpy(inbuffer,"");
     get = ulapi_socket_read(server_feedback, inbuffer, MSG_SIZE);
@@ -318,9 +363,36 @@ namespace crpi_robot
 
   LIBRARY_API CanonReturn CrpiAllegro::MoveAttractor (robotPose &pose) //hijacked for grasping control
   {
+#if defined(__GNUC__)
+    string one,two;
+    one = "Control"; two = "grasping";
+    //const char *
+    const char * varctl = one.c_str();
+    //char *
+    char * varg = new char[two.size() + 1];
+    copy(two.begin(),two.end(),varg);
+    varg[two.size()] = '\0'; //terminating 0
+
+    SetParameter(varctl,varg);
+
+    one = "Plan"; two = "set_point";
+    //const char *
+    const char * varpln = one.c_str();
+    //char *
+    char * varsp = new char[two.size() + 1];
+    copy(two.begin(),two.end(),varsp);
+    varsp[two.size()] = '\0'; //terminating 0
+    
+    SetParameter(varpln,varsp);  
+    
+    delete[] varg;
+    delete[] varsp;
+#elif defined(_MSC_VER)
+
     SetParameter("Control","grasping");
     SetParameter("Plan","set_point");
-    
+#endif
+
     std::ostringstream sstream;
     std::string PoseAsString;
 
@@ -363,7 +435,12 @@ namespace crpi_robot
     sstream.str(std::string());
 
     send = ulapi_socket_write(server_config, outbuffer, sizeof(outbuffer));
-    Sleep(10);
+#ifdef WIN32
+        Sleep (10);
+#else
+        usleep(10000);
+#endif
+    
 
     strcpy(outbuffer,"");
     
@@ -372,11 +449,37 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiAllegro::MoveToAxisTarget (robotAxes &axes)
+  LIBRARY_API CanonReturn CrpiAllegro::MoveToAxisTarget (robotAxes &axes, bool useBlocking)
   {
+#if defined(__GNUC__)
+    string one,two;
+    one = "Control"; two = "joint_pos";
+    //const char *
+    const char * varctl = one.c_str();
+    //char *
+    char * varjp = new char[two.size() + 1];
+    copy(two.begin(),two.end(),varjp);
+    varjp[two.size()] = '\0'; //terminating 0
+
+    SetParameter(varctl,varjp);
+
+    one = "Plan"; two = "set_point_smooth";
+    //const char *
+    const char * varpln = one.c_str();
+    //char *
+    char * varsp = new char[two.size() + 1];
+    copy(two.begin(),two.end(),varsp);
+    varsp[two.size()] = '\0'; //terminating 0
+    
+    SetParameter(varpln,varsp);  
+    delete[] varjp;
+    delete[] varsp;
+#elif defined(_MSC_VER)
+
     SetParameter("Control","joint_pos");
     SetParameter("Plan","set_point_smooth");
-    
+#endif
+
     std::ostringstream sstream;
     std::string AngleAsString;
 
@@ -392,7 +495,11 @@ namespace crpi_robot
     }
 
     send = ulapi_socket_write(server_config, outbuffer, sizeof(outbuffer));
-    Sleep(10);
+#ifdef WIN32
+    Sleep (10);
+#else
+    usleep(10000);
+#endif
 
     strcpy(outbuffer,"");
     
@@ -414,14 +521,22 @@ namespace crpi_robot
     strcpy(outbuffer,"");
     strcat(outbuffer, "Speed");
     send = ulapi_socket_write(server_params, outbuffer, sizeof(outbuffer));
-    Sleep(10);
+#ifdef WIN32
+    Sleep (10);
+#else
+    usleep(10000);
+#endif
     strcpy(outbuffer,"");
   
     sstream << speed;
     SpeedAsString = sstream.str();
     strcat(outbuffer, SpeedAsString.c_str());
     send = ulapi_socket_write(server_params, outbuffer, sizeof(outbuffer));
-    Sleep(10);
+#ifdef WIN32
+    Sleep (10);
+#else
+    usleep(10000);
+#endif
     strcpy(outbuffer,"");
 
     return CANON_SUCCESS;
@@ -481,7 +596,11 @@ namespace crpi_robot
     {
       strcat(outbuffer, temp_char);
       send = ulapi_socket_write(server_config, outbuffer, sizeof(outbuffer));
-      Sleep(10);
+#ifdef WIN32
+        Sleep (10);
+#else
+        usleep(10000);
+#endif
     }
 
     //parameters for various other behaviors:
@@ -491,24 +610,40 @@ namespace crpi_robot
     {
       strcat(outbuffer, "touch_stop");
       send = ulapi_socket_write(server_params, outbuffer, sizeof(outbuffer));
-      Sleep(10);
+#ifdef WIN32
+        Sleep (10);
+#else
+        usleep(10000);
+#endif
       strcpy(outbuffer,"");
 
       strcat(outbuffer, temp_char);
       send = ulapi_socket_write(server_params, outbuffer, sizeof(outbuffer));
-      Sleep(10);
+#ifdef WIN32
+        Sleep (10);
+#else
+        usleep(10000);
+#endif
     }
 
     else if  (strcmp(paramName,"gravity_vector")==0)
     {
       strcat(outbuffer, "gravity_vector");
       send = ulapi_socket_write(server_params, outbuffer, sizeof(outbuffer));
-      Sleep(10);
+#ifdef WIN32
+        Sleep (10);
+#else
+        usleep(10000);
+#endif
       strcpy(outbuffer,"");
 
       strcat(outbuffer, temp_char);
       send = ulapi_socket_write(server_params, outbuffer, sizeof(outbuffer));
-      Sleep(10);
+#ifdef WIN32
+        Sleep (10);
+#else
+        usleep(10000);
+#endif
     }
 
     else if  (strcmp(paramName,"tare_nano17")==0)
@@ -516,7 +651,11 @@ namespace crpi_robot
       cout << "TARING SENSORS" << endl;
       strcat(outbuffer, "tare_nano17");
       send = ulapi_socket_write(server_params, outbuffer, sizeof(outbuffer));
-      Sleep(10);
+#ifdef WIN32
+        Sleep (10);
+#else
+        usleep(10000);
+#endif
     }
 
     /*
@@ -565,4 +704,25 @@ namespace crpi_robot
     return CANON_REJECT;
   }
   
+  LIBRARY_API CanonReturn CrpiAllegro::MoveBase (robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
+  LIBRARY_API CanonReturn CrpiAllegro::PointHead (robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
+  LIBRARY_API CanonReturn CrpiAllegro::PointAppendage (CanonRobotAppendage app_ID,
+                                                       robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
 } // crpi_robot

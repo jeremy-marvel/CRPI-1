@@ -31,6 +31,7 @@
 #include <windows.h>
 #elif defined(__GNUC__)
 #include <cmath>
+#include <cstdlib>
 #include <stdio.h>
 #endif
 

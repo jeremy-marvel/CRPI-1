@@ -5,6 +5,7 @@
 //  Workfile:        crpi.h
 //  Revision:        1.0 - 13 March, 2014
 //                   2.0 - 12 March, 2015 - Conversion from CRCL to CRPI
+//                   2.1 - 28 February, 2018 - Linux Compatability
 //  Author:          J. Marvel
 //
 //  Description
@@ -17,6 +18,14 @@
 #ifndef CRPI_H_
 #define CRPI_H_
 
+
+#include <math.h>
+#include <vector>
+#include <string>
+#include <time.h>
+#include <cstdlib>
+
+#if defined(_MSC_VER)
 #include "ulapi.h"
 #include <math.h>
 #include <vector>
@@ -24,19 +33,28 @@
 #include <time.h>
 #include "..\Math\MatrixMath.h"
 #include "..\Math\VectorMath.h"
+#include "..\Math\NumericalMath.h"
 #include "..\..\portable.h"
 
-#ifndef WIN32
+#elif defined(__GNUC__)
+#include "gcccrpi.h"
+#include "../ulapi/src/ulapi.h"
 #include <unistd.h>
+#include <cmath>
+#include <vector>
+#include <string>
+#include <time.h>
+#include "../Math/MatrixMath.h"
+#include "../Math/VectorMath.h"
+#include "../../portable.h"
 #endif
-
 #ifdef WIN32
 
 #if _MSC_VER>=1900
 #  define STDC99
 #endif
 
-#else
+#elif not defined(__GNUC__)
 
 #define LIBRARY_API
 
@@ -71,10 +89,13 @@ typedef enum
   CmdInitCanon,                 //! Not a CRPI command
   CmdMessage,
   CmdMoveAttractor,
+  CmdMoveBase,
   CmdMoveStraightTo,
   CmdMoveThroughTo,
   CmdMoveTo,
   CmdMoveToAxisTarget,
+  CmdPointAppendage,
+  CmdPointHead,
   CmdRunProgram,
   CmdSaveConfig,
   CmdSetAbsoluteAcceleration,
@@ -118,6 +139,32 @@ typedef enum
   RADIAN = 0,
   DEGREE
 } CanonAngleUnit;
+
+
+typedef enum
+{
+  ARM_LEFT = 0,
+  ARM_RIGHT,
+  ARM_0,
+  ARM_1,
+  ARM_2,
+  ARM_3,
+  ARM_4,
+  ARM_5,
+  ARM_6,
+  ARM_7,
+  LEG_LEFT,
+  LEG_RIGHT,
+  LEG_0,
+  LEG_1,
+  LEG_2,
+  LEG_3,
+  LEG_4,
+  LEG_5,
+  LEG_6,
+  LEG_7,
+} CanonRobotAppendage;
+
 
 //! @brief Vector representation of an axis of rotation
 //!
@@ -448,11 +495,6 @@ struct robotAxes
   ~robotAxes()
   {
     axis.clear();
-    //if (axes > 0 && axis != NULL)
-    //{
-    //  delete axis;
-    //}
-    //axis = NULL;
     axes = 0;
   }
 
@@ -465,15 +507,6 @@ struct robotAxes
   {
     if (this != &source)
     {
-      /*
-      delete[] axis;
-      axis = new double[source.axes];
-      for (int i = 0; i < source.axes; ++i)
-      {
-        axis[i] = source.axis[i];
-      }
-      axes = source.axes;
-      */
       axis.clear();
       for (int i = 0; i < source.axes; ++i)
       {
@@ -552,11 +585,11 @@ struct robotIO
 {
   //! @brief Set of digital I/O values
   //!
-  bool *dio;
+  vector<bool> dio;
 
   //! @brief Set of analog I/O values
   //!
-  double *aio;
+  vector<double> aio;
 
   //! @brief Number of DI/O values defined
   //!
@@ -570,8 +603,9 @@ struct robotIO
   //!
   robotIO ()
   {
-    dio = new bool[CRPI_IO_MAX];
-    aio = new double[CRPI_IO_MAX];
+    dio.resize(CRPI_IO_MAX);
+    aio.resize(CRPI_IO_MAX);
+
     for (int i = 0; i < CRPI_IO_MAX; ++i)
     {
       dio[i] = false;
@@ -587,8 +621,9 @@ struct robotIO
   //!
   robotIO(int diosize, int aiosize)
   {
-    dio = new bool[diosize];
-    aio = new double[aiosize];
+    dio.resize(diosize);
+    aio.resize(aiosize);
+
     for (int i = 0; i < diosize; ++i)
     {
       dio[i] = false;
@@ -605,8 +640,8 @@ struct robotIO
   //!
   ~robotIO()
   {
-    delete[] dio;
-    delete[] aio;
+    dio.clear();
+    aio.clear();
   }
 
   //! @brief Assignment function
@@ -618,11 +653,10 @@ struct robotIO
   {
     if (this != &source)
     {
-      delete[] dio;
-      delete[] aio;
-
-      dio = new bool[source.ndio];
-      aio = new double[source.naio];
+      dio.clear();
+      dio.resize(source.ndio);
+      aio.clear();
+      aio.resize(source.naio);
 
       for (int i = 0; i < source.ndio; ++i)
       {
@@ -884,6 +918,22 @@ struct CrpiRobotParams
     {
       *mounting = *source.mounting;
       *toWorld = *source.toWorld;
+      //!added 2/26 -mlz
+      //!translation of of strcpy_s calls to strcpy calls for gcc compatibility
+#ifndef WIN32
+      strcpy(tcp_ip_addr, source.tcp_ip_addr);
+      tcp_ip_port = source.tcp_ip_port;
+      tcp_ip_client = source.tcp_ip_client;
+      strcpy(obs_tcp_ip_addr, source.obs_tcp_ip_addr);
+      obs_tcp_ip_port = source.obs_tcp_ip_port;
+      obs_tcp_ip_client = source.obs_tcp_ip_client;
+      strcpy(serial_port, source.serial_port);
+      serial_rate = source.serial_rate;
+      serial_parity_even = source.serial_parity_even;
+      serial_sbits = source.serial_sbits;
+      strcpy(serial_handshake, source.serial_handshake);
+      use_serial = source.use_serial;
+#else
       strcpy_s(tcp_ip_addr, source.tcp_ip_addr);
       tcp_ip_port = source.tcp_ip_port;
       tcp_ip_client = source.tcp_ip_client;
@@ -896,7 +946,7 @@ struct CrpiRobotParams
       serial_sbits = source.serial_sbits;
       strcpy_s(serial_handshake, source.serial_handshake);
       use_serial = source.use_serial;
-
+#endif
       tools.clear();
       coordSystNames.clear();
       toCoordSystMatrices.clear();
@@ -999,7 +1049,9 @@ public:
   //!
   ~crpi_timer ()
   {
+#ifdef WIN32
     timeEndPeriod (1);
+#endif
   };
 
   //! @brief Start the timer if it isn't already running, otherwise

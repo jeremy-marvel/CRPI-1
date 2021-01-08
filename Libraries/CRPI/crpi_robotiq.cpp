@@ -308,7 +308,7 @@ namespace crpi_robot
       SetParameter("FORCE_FINGER_B", &param);
       SetParameter("FORCE_FINGER_C", &param);
       SetParameter("FORCE_SCISSOR", &param);
-      param = 255;
+      param = 220;
       SetParameter("POSITION_SCISSOR", &param);
       param = 10;
       SetParameter("POSITION_FINGER_A", &param);
@@ -330,9 +330,9 @@ namespace crpi_robot
     return CANON_SUCCESS;
   }
 
-  LIBRARY_API CanonReturn CrpiRobotiq::MoveStraightTo (robotPose &pose)
+  LIBRARY_API CanonReturn CrpiRobotiq::MoveStraightTo (robotPose &pose, bool useBlocking)
   {
-    return CANON_SUCCESS;
+    return CANON_REJECT;
   }
 
 
@@ -346,9 +346,9 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiRobotiq::MoveTo (robotPose &pose)
+  LIBRARY_API CanonReturn CrpiRobotiq::MoveTo (robotPose &pose, bool useBlocking)
   {
-    return CANON_SUCCESS;
+    return CANON_REJECT;
   }
 
 
@@ -403,7 +403,7 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiRobotiq::MoveToAxisTarget (robotAxes &axes)
+  LIBRARY_API CanonReturn CrpiRobotiq::MoveToAxisTarget (robotAxes &axes, bool useBlocking)
   {
     return CANON_SUCCESS;
   }
@@ -584,6 +584,29 @@ namespace crpi_robot
   {
     return CANON_SUCCESS;
   }
+
+
+  LIBRARY_API CanonReturn CrpiRobotiq::MoveBase (robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
+  LIBRARY_API CanonReturn CrpiRobotiq::PointHead (robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
+  LIBRARY_API CanonReturn CrpiRobotiq::PointAppendage (CanonRobotAppendage app_ID,
+                                                       robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
   
   LIBRARY_API void CrpiRobotiq::sendCommand()
   {

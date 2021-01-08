@@ -90,6 +90,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>HRI</TargetName>
+    <OutDir>..\..\..\Release\</OutDir>
+    <IntDir>..\..\..\Release\HRI\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ExtensionsToDeleteOnClean>*.cdf;*.cache;*.obj;*.obj.enc;*.ilk;*.ipdb;*.iobj;*.resources;*.tlb;*.tli;*.tlh;*.tmp;*.rsp;*.pgc;*.pgd;*.meta;*.tlog;*.manifest;*.res;*.pch;*.exp;*.idb;*.rep;*.xdc;*.pdb;*_manifest.rc;*.bsc;*.sbr;*.metagen;*.bi</ExtensionsToDeleteOnClean>
@@ -102,6 +104,8 @@
     <ExecutablePath>$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
     <ReferencePath>$(VC_ReferencesPath_x64);</ReferencePath>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <OutDir>..\..\..\Debug\</OutDir>
+    <IntDir>..\..\..\Debug\HRI\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <BuildLog>
@@ -141,7 +145,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>..\..\..\Release\HRI.lib</ImportLibrary>
-      <TargetMachine>MachineX86</TargetMachine>
+      <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>..\..\..\Release;..\..\Thirdparty\OpenCV2\lib;..\..\Thirdparty\MyoSDK\lib;..\..\ThirdParty\LeapSDK\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Bscmake>
@@ -165,10 +169,10 @@
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PrecompiledHeaderOutputFile>..\..\..\Release\HRI.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>..\..\..\Release/</AssemblerListingLocation>
-      <ObjectFileName>..\..\..\Release/</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\Release\HRI.pdb</ProgramDataBaseFileName>
+      <PrecompiledHeaderOutputFile>..\..\..\Release\HRI\HRI.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>..\..\..\Release\HRI\</AssemblerListingLocation>
+      <ObjectFileName>..\..\..\Release\HRI\</ObjectFileName>
+      <ProgramDataBaseFileName>..\..\..\Release\HRI\HRI.pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalIncludeDirectories>..\..\ThirdParty\MyoSDK\include;..\..\ThirdParty\OpenCV2\include\;..\..\ThirdParty\LeapSDK\include;..\..\Math;..\..\ulapi\src;..\..\CRPI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -181,17 +185,21 @@
       <AdditionalDependencies>Math.lib;winmm.lib;Leap.lib;Myo64.lib;opencv_core2411.lib;opencv_highgui2411.lib;opencv_imgproc2411.lib;opencv_calib3d2411.lib;ulapi_VS2015.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>..\..\..\Release\HRI.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <ProgramDatabaseFile>..\..\..\Release\HRI.pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>..\..\..\Release\HRI\HRI.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>..\..\..\Release\HRI.lib</ImportLibrary>
+      <ProfileGuidedDatabase>..\..\..\Release\HRI\HRI.pgd</ProfileGuidedDatabase>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <OutputFile>..\..\..\Release\HRI.bsc</OutputFile>
+      <OutputFile>..\..\..\Release\HRI\HRI.bsc</OutputFile>
     </Bscmake>
+    <Xdcmake>
+      <OutputFile>..\..\..\Release\HRI\HRI.xml</OutputFile>
+    </Xdcmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <BuildLog>
@@ -237,7 +245,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>..\..\..\Debug\HRI.lib</ImportLibrary>
-      <TargetMachine>MachineX86</TargetMachine>
+      <TargetMachine>MachineX64</TargetMachine>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -255,14 +263,14 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\ThirdParty\MyoSDK\include;..\..\ThirdParty\OpenCV2\include\;..\..\ThirdParty\LeapSDK\include;..\..\Math;..\..\ulapi\src;..\..\CRPI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\ThirdParty\MyoSDK\include;..\..\ThirdParty\OpenCV2\include;..\..\ThirdParty\LeapSDK\include;..\..\Math;..\..\ulapi\src;..\..\CRPI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <PrecompiledHeaderOutputFile>..\..\..\Debug\HRI.pch</PrecompiledHeaderOutputFile>
-      <AssemblerListingLocation>..\..\..\Debug\</AssemblerListingLocation>
-      <ObjectFileName>..\..\..\Debug\</ObjectFileName>
-      <ProgramDataBaseFileName>..\..\..\Debug\HRI.pdb</ProgramDataBaseFileName>
+      <PrecompiledHeaderOutputFile>..\..\..\Debug\HRI\HRI.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>..\..\..\Debug\HRI\</AssemblerListingLocation>
+      <ObjectFileName>..\..\..\Debug\HRI\</ObjectFileName>
+      <ProgramDataBaseFileName>..\..\..\Debug\HRI\HRI.pdb</ProgramDataBaseFileName>
       <BrowseInformation>true</BrowseInformation>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -281,17 +289,21 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <AdditionalLibraryDirectories>..\..\..\Debug;..\..\Thirdparty\OpenCV2\lib;..\..\Thirdparty\MyoSDK\lib;..\..\ThirdParty\LeapSDK\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ProgramDatabaseFile>..\..\..\Debug\HRI.pdb</ProgramDatabaseFile>
+      <ProgramDatabaseFile>..\..\..\Debug\HRI\HRI.pdb</ProgramDatabaseFile>
       <SubSystem>Console</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>..\..\..\Debug\HRI.lib</ImportLibrary>
+      <ProfileGuidedDatabase>..\..\..\Debug\HRI\HRI.pgd</ProfileGuidedDatabase>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <OutputFile>..\..\..\Debug\HRI.bsc</OutputFile>
+      <OutputFile>..\..\..\Debug\HRI\HRI.bsc</OutputFile>
     </Bscmake>
+    <Xdcmake>
+      <OutputFile>..\..\..\Debug\HRI\HRI.xml</OutputFile>
+    </Xdcmake>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="LeapMotion.cpp" />

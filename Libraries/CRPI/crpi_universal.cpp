@@ -16,16 +16,15 @@
 #include <fstream>
 #include <iostream>
 
-#define BLOCKING_MOTION
-//#define VERIFY_MOVING
+#define VERIFY_MOVING
 #define USE_TIMEOUT
 
 #define NEWTCPIP
 
 //#define UNIVERSAL_NOISY
-#define distthresh 0.005f
-#define angthresh 0.05f
-#define timethresh 10
+#define distthresh 0.01f
+#define angthresh 7.0f
+#define timethresh 40
 
 using namespace std;
 
@@ -136,8 +135,7 @@ namespace crpi_robot
     //! Target joint positions
     for (j = 0; j < 6; ++j)
     {
-      //dval = readDouble(buffer, index, little);
-      axes.axis.at(j) = readDouble(buffer, index, little);
+      dval = readDouble(buffer, index, little);
     }
 
     //! Target joint velocities
@@ -167,7 +165,9 @@ namespace crpi_robot
     //! Actual joint positions
     for (j = 0; j < 6; ++j)
     {
-      dval = readDouble(buffer, index, little);
+      axes.axis.at(j) = readDouble(buffer, index, little);
+//      cout << axes.axis.at(j) << endl;
+//      dval = readDouble(buffer, index, little);
     }
 
     //! Actual joint velocities
@@ -189,16 +189,31 @@ namespace crpi_robot
     }
 
     //! Actual Cartesian coordinates of TCP
-    for (j = 0; j < 6; ++j)
-    {
-      dval = readDouble(buffer, index, little);
-    }
+ //   for (j = 0; j < 6; ++j)
+ //   {
+ //     dval = readDouble(buffer, index, little);
+ //     cout << dval << endl;
+ //   }
+    pose.x = readDouble(buffer, index, little);
+    pose.y = readDouble(buffer, index, little);
+    pose.z = readDouble(buffer, index, little);
+    pose.xrot = readDouble(buffer, index, little);
+    pose.yrot = readDouble(buffer, index, little);
+    pose.zrot = readDouble(buffer, index, little);
+//    cout << "raw: " << pose.x << " " << pose.y << " " << pose.z << " " << pose.xrot << " " << pose.yrot << " " << pose.zrot << endl;
+
 
     //! Actual speed of TCP in Cartesian space
-    for (j = 0; j < 6; ++j)
-    {
-      dval = readDouble(buffer, index, little);
-    }
+//    for (j = 0; j < 6; ++j)
+//    {
+//      dval = readDouble(buffer, index, little);
+//    }
+    speeds.x = readDouble(buffer, index, little);
+    speeds.y = readDouble(buffer, index, little);
+    speeds.z = readDouble(buffer, index, little);
+    speeds.xrot = readDouble(buffer, index, little);
+    speeds.yrot = readDouble(buffer, index, little);
+    speeds.zrot = readDouble(buffer, index, little);
 
     //! Forces at TCP
     /*
@@ -215,34 +230,17 @@ namespace crpi_robot
     forces.zrot = readDouble(buffer, index, little);
 
     //! TCP target coordinates
-    /*
     for (j = 0; j < 6; ++j)
     {
       dval = readDouble(buffer, index, little);
     }
-    */
-    pose.x = readDouble(buffer, index, little);
-    pose.y = readDouble(buffer, index, little);
-    pose.z = readDouble(buffer, index, little);
-    pose.xrot = readDouble(buffer, index, little);
-    pose.yrot = readDouble(buffer, index, little);
-    pose.zrot = readDouble(buffer, index, little);
-    //cout << "raw: " << pose.x << " " << pose.y << " " << pose.z << " " << pose.xrot << " " << pose.yrot << " " << pose.zrot << endl;
 
     //! TCP target speed
-    /*
     for (j = 0; j < 6; ++j)
     {
       dval = readDouble(buffer, index, little);
     }
-    */
-    speeds.x = readDouble(buffer, index, little);
-    speeds.y = readDouble(buffer, index, little);
-    speeds.z = readDouble(buffer, index, little);
-    speeds.xrot = readDouble(buffer, index, little);
-    speeds.yrot = readDouble(buffer, index, little);
-    speeds.zrot = readDouble(buffer, index, little);
-    
+  
     //! Digital input states
     ival = (int)(readDouble(buffer, index, little));
     for (j = (CRPI_IO_MAX-1); j >= 0; j--)
@@ -330,6 +328,8 @@ namespace crpi_robot
     return true;
   }
 
+//#define KEEP_CONNECTION
+
   void feedbackThread (void *param)
   {
     static crpi_timer timer;
@@ -345,6 +345,7 @@ namespace crpi_robot
 
     buffer = new char[1044];
 
+    ulapi_integer client = 0;
     while (uH->runThread)
     {
 //      cout << "running... " << endl;
@@ -353,37 +354,67 @@ namespace crpi_robot
       PORT = 30003            //! 125 Hz update of robot state
       PORT = 30002            //! Control port
       */
-      ulapi_integer client = ulapi_socket_get_client_id (30003, uH->params.tcp_ip_addr);
-      ulapi_socket_set_nonblocking(client);
+      if (client <= 0)
+      {
+//        cout << "No client.  Restarting" << endl;
+        client = ulapi_socket_get_client_id (30003, uH->params.tcp_ip_addr);
+        if (client > 0)
+        {
+          ulapi_socket_set_nonblocking(client);
+        }
+      }
 
       if (client > 0)
       {
         //! Read feedback from robot
         get = ulapi_socket_read(client, buffer, 1044);
+
+#ifndef KEEP_CONNECTION
         ulapi_socket_close(client);
+        client = 0;
+#endif
 
-        //! Parse feedback from robot
-        if (parseFeedback(get, buffer, pose, axes, io, force, speed))
+        if (get == 812 || get == 1044)
         {
-          ulapi_mutex_take(uH->handle);
-          //! Store feedback from robot
-          uH->curPose = pose;
-          uH->poseGood = true;
-          uH->curAxes = axes;
-          uH->curForces = force;
-          uH->curSpeeds = speed;
-          uH->curIO = io;
-          ulapi_mutex_give(uH->handle);
+          //! Parse feedback from robot
+          if (parseFeedback(get, buffer, pose, axes, io, force, speed))
+          {
+            ulapi_mutex_take(uH->handle);
+            //! Store feedback from robot
+            uH->curPose = pose;
+            uH->poseGood = true;
+            uH->curAxes = axes;
+            uH->curForces = force;
+            uH->curSpeeds = speed;
+            uH->curIO = io;
+            ulapi_mutex_give(uH->handle);
 
-          //cout << "(" << pose.x << ", " << pose.y << ", " << pose.z << ", " << pose.xrot << ", " << pose.yrot << ", " << pose.zrot << ")" << endl;
-          //cout << "(" << axes.axis.at(0) << ", " << axes.axis.at(1) << ", " << axes.axis.at(2) << ", " << axes.axis.at(3) << ", " << axes.axis.at(4) << ", " << axes.axis.at(5) << ")" << endl;
+            //cout << "(" << pose.x << ", " << pose.y << ", " << pose.z << ", " << pose.xrot << ", " << pose.yrot << ", " << pose.zrot << ")" << endl;
+            //cout << "(" << axes.axis.at(0) << ", " << axes.axis.at(1) << ", " << axes.axis.at(2) << ", " << axes.axis.at(3) << ", " << axes.axis.at(4) << ", " << axes.axis.at(5) << ")" << endl;
+          }
+        } // if (get == 812 || 1044)
+        else
+        {
+          //! Error reading
+#ifdef KEEP_CONNECTION
+//          cout << "Bad read.  Restart connection." << endl;
+          ulapi_socket_close(client);
+          client = 0;
+#endif
+
         }
-      }
+      } // if (client > 0)
 
-      //! Don't slam your processor!  You don't need to poll at full speed. 10 Hz
+      //! Don't slam your processor!  You don't need to poll at full speed. 30 Hz
       //timer.waitUntil(100);//Sleep (100);
-      Sleep(50);
-    }
+#ifdef WIN32
+    Sleep (33);
+#else
+    usleep(33000);
+#endif 
+      //Sleep(33);
+    } // while (uH->runThread)
+    cout << "Quitting thread" << endl;
     delete [] buffer;
     return;
   }
@@ -431,7 +462,12 @@ namespace crpi_robot
 
     while (handle_.poseGood != true)
     {
-      Sleep(100);
+#ifdef WIN32
+    Sleep (100);
+#else
+    usleep(100000);
+#endif 
+      //Sleep(100);
     }
 
 #ifdef NEWTCPIP
@@ -544,6 +580,8 @@ namespace crpi_robot
       }
     }
 
+    Sleep(500);
+
     target.clear();
     target.push_back (itr->mass);
     target.push_back (itr->centerMass.x / 1000.0f);
@@ -564,7 +602,6 @@ namespace crpi_robot
         return CANON_FAILURE;
       }
     }
-
 
     return CANON_SUCCESS;
   }
@@ -589,16 +626,13 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiUniversal::MoveStraightTo (robotPose &pose)
+  LIBRARY_API CanonReturn CrpiUniversal::MoveStraightTo (robotPose &pose, bool useBlocking)
   {
     //! Construct message
     vector<double> target;
     robotPose temp;
-
-#ifdef BLOCKING_MOTION 
     double dist, dist2, tim, dist_rot;
     int count;
-#endif
 
     transformToMount(pose, temp);
     target.push_back (temp.x);
@@ -607,6 +641,7 @@ namespace crpi_robot
     target.push_back (temp.xrot);
     target.push_back (temp.yrot);
     target.push_back (temp.zrot);
+    pose.print();
 
     //! LIN, Cartesian, Absolute
     if (generateMove ('L', 'C', 'A', target))
@@ -617,55 +652,60 @@ namespace crpi_robot
         //! error sending
         return CANON_FAILURE;
       }
-#ifdef BLOCKING_MOTION     
-      //! ROBOT DOES NOT BLOCK:  WAIT FOR RESPONSE
-      dist2 = 1000.0;
-      count = 0;
-      tim = ulapi_time();
-      while (true)
+      if (useBlocking)
       {
-        ulapi_mutex_take(handle_.handle);
-        dist = handle_.curPose.distance(temp);
-        dist_rot = handle_.curPose.distance_rot(temp);
-        ulapi_mutex_give(handle_.handle);
-
-#ifdef VERIFY_MOVING
-        if (dist >= dist2)
+        //! ROBOT DOES NOT BLOCK:  WAIT FOR RESPONSE
+        dist2 = 1000.0;
+        count = 0;
+        tim = ulapi_time();
+        while (true)
         {
-          ++count;
-
-          if (count >= 30)
+          ulapi_mutex_take(handle_.handle);
+          dist = handle_.curPose.distance(temp);
+          dist_rot = handle_.curPose.distance_rot(temp);
+          ulapi_mutex_give(handle_.handle);
+          //cout << "Distance:  Ang:  " << dist_rot << " New: " << dist << " Previous: " << dist2 << " Counter: " << count << " Timer: " << (ulapi_time() - tim) << endl;
+#ifdef VERIFY_MOVING
+          if (dist >= dist2)
           {
-            //! Robot is not moving.  Retry.
-            return CANON_FAILURE;
+            ++count;
+
+            if (count >= 30)
+            {
+              //! Robot is not moving.  Retry.
+              return CANON_FAILURE;
+            }
           }
-        }
 #endif
 
 #ifdef USE_TIMEOUT
-        if ((ulapi_time() - tim) > timethresh)
-        {
-          return CANON_FAILURE;
-        }
+          if ((ulapi_time() - tim) > timethresh)
+          {
+            return CANON_FAILURE;
+          }
 #endif
-        //cout << "distance rot: " << dist_rot << endl;
-        //printf("d %f a %f\n", dist, dist_rot);
-        if (dist <= distthresh && dist_rot <= angthresh)
-        {
-          break;
+          //cout << "distance rot: " << dist_rot << endl;
+          //printf("d %f a %f\n", dist, dist_rot);
+          if (dist <= distthresh && fabs(dist_rot) <= angthresh)
+          {
+            break;
+          }
+          //Sleep(100);
+#ifdef WIN32
+          Sleep(100);
+#else
+          usleep(100000);
+#endif 
+          //        ulapi_wait(200000);
+          dist2 = dist;
         }
-        Sleep(100);
-//        ulapi_wait(200000);
-        dist2 = dist;
-      }
-#endif
+      } // if (useBlocking)  
     }
     else
     {
       //! Error generating motion message
       return CANON_FAILURE;
     }
-
     return CANON_SUCCESS;
   }
 
@@ -678,11 +718,10 @@ namespace crpi_robot
   {
     bool status = true;
 
-    //! This is a temporary function definition until the KRL code has been updated to properly handle
-    //! this method
+    //! This is a temporary function definition
     for (int x = 0; x < numPoses; ++x)
     {
-      status &= (MoveTo (poses[x]) == CANON_SUCCESS);
+      status &= (MoveTo (poses[x], true) == CANON_SUCCESS);
       if (!status)
       {
         //! Error when executing multi move
@@ -694,16 +733,13 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiUniversal::MoveTo (robotPose &pose)
+  LIBRARY_API CanonReturn CrpiUniversal::MoveTo (robotPose &pose, bool useBlocking)
   {
     //! Construct message
     vector<double> target;
     robotPose temp = pose;
-
-#ifdef BLOCKING_MOTION 
     double dist, dist2, tim;
     int count;
-#endif
 
     transformToMount(pose, temp);
     target.push_back (temp.x);
@@ -757,47 +793,53 @@ namespace crpi_robot
         //! error sending
         return CANON_FAILURE;
       }
-#ifdef BLOCKING_MOTION     
-      //! ROBOT DOES NOT BLOCK:  WAIT FOR RESPONSE
-      dist2 = 1000.0;
-      count = 0;
-      tim = ulapi_time();
-      while (true)
+      if (useBlocking)
       {
-        ulapi_mutex_take(handle_.handle);
-        dist = handle_.curPose.distance(temp);
-        ulapi_mutex_give(handle_.handle);
+        //! ROBOT DOES NOT BLOCK:  WAIT FOR RESPONSE
+        dist2 = 1000.0;
+        count = 0;
+        tim = ulapi_time();
+        while (true)
+        {
+          ulapi_mutex_take(handle_.handle);
+          dist = handle_.curPose.distance(temp);
+          ulapi_mutex_give(handle_.handle);
 
 #ifdef VERIFY_MOVING
-        if (dist >= dist2)
-        {
-          ++count;
-
-          if (count >= 30)
+          if (dist >= dist2)
           {
-            //! Robot is not moving.  Retry.
-            return CANON_FAILURE;
+            ++count;
+
+            if (count >= 30)
+            {
+              //! Robot is not moving.  Retry.
+              return CANON_FAILURE;
+            }
           }
-        }
 #endif
 
 #ifdef USE_TIMEOUT
-        if ((ulapi_time() - tim) > timethresh)
-        {
-          return CANON_FAILURE;
-        }
+          if ((ulapi_time() - tim) > timethresh)
+          {
+            return CANON_FAILURE;
+          }
 #endif
-        //printf("d %f\n", dist);
-        if (dist <= distthresh)
-        {
-          break;
-        }
-        Sleep(100);
-//        ulapi_wait(200000);
-        dist2 = dist;
-      }
-#endif
+          //printf("d %f\n", dist);
+          if (dist <= distthresh)
+          {
+            break;
+          }
 
+#ifdef WIN32
+          Sleep(100);
+#else
+          usleep(100000);
+#endif 
+          //Sleep(100);
+  //        ulapi_wait(200000);
+          dist2 = dist;
+        }
+      } // if (useBlocking)
     }
     else
     {
@@ -956,17 +998,17 @@ namespace crpi_robot
     temp3.print();
 #endif
     temp = temp2 - temp3;
-#ifdef UNIVERSAL_NOIYS
+#ifdef UNIVERSAL_NOISY
     cout << "offset: " << endl;
     temp.print();
 #endif
 
-    target.push_back (temp.x);
-    target.push_back (temp.y);
-    target.push_back (temp.z);
-    target.push_back (temp.xrot);
-    target.push_back (temp.yrot);
-    target.push_back (temp.zrot);
+    target.push_back (temp3.x);
+    target.push_back (temp3.y);
+    target.push_back (temp3.z);
+    target.push_back (temp3.xrot);
+    target.push_back (temp3.yrot);
+    target.push_back (temp3.zrot);
 
     if (generateParameter ('F', 'E', target))
     {
@@ -988,7 +1030,7 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiUniversal::MoveToAxisTarget (robotAxes &axes)
+  LIBRARY_API CanonReturn CrpiUniversal::MoveToAxisTarget (robotAxes &axes, bool useBlocking)
   {
     robotAxes cur;
     double dist, dist2;
@@ -1012,7 +1054,7 @@ namespace crpi_robot
     }
 
     //! PTP, Angular, Absolute
-    if (generateMove ('P', 'A', 'A', target))
+    if (generateMove('P', 'A', 'A', target))
     {
       //! Send message to robot
       if (!send())
@@ -1021,47 +1063,54 @@ namespace crpi_robot
         return CANON_FAILURE;
       }
 
-#ifdef BLOCKING_MOTION     
-      //! ROBOT DOES NOT BLOCK:  WAIT FOR RESPONSE
-      dist2 = 1000.0;
-      count = 0;
-      tim = ulapi_time();
-      while (true)
+      if (useBlocking)
       {
+        //! ROBOT DOES NOT BLOCK:  WAIT FOR RESPONSE
+        dist2 = 1000.0;
+        count = 0;
+        tim = ulapi_time();
+        while (true)
+        {
 
-        GetRobotAxes(&cur);
-        dist = cur.distance(axes);
-        //cout << dist << endl;
+          GetRobotAxes(&cur);
+          dist = cur.distance(axes);
+          //cout << dist << endl;
 
 #ifdef VERIFY_MOVING
-        if (dist >= dist2)
-        {
-          ++count;
-
-          if (count >= 30)
+          if (dist >= dist2)
           {
-            //! Robot is not moving.  Retry.
-            return CANON_FAILURE;
+            ++count;
+
+            if (count >= 30)
+            {
+              //! Robot is not moving.  Retry.
+              return CANON_FAILURE;
+            }
           }
-        }
 #endif
 
 #ifdef USE_TIMEOUT
-        if ((ulapi_time() - tim) > timethresh)
-        {
-          return CANON_FAILURE;
-        }
+          if ((ulapi_time() - tim) > timethresh)
+          {
+            return CANON_FAILURE;
+          }
 #endif
-        //printf("d %f\n", dist);
-        if (dist <= distthresh)
-        {
-          break;
+          //printf("d %f\n", dist);
+          if (dist <= distthresh)
+          {
+            break;
+          }
+
+#ifdef WIN32
+          Sleep(100);
+#else
+          usleep(100000);
+#endif 
+          //Sleep(100);
+  //        ulapi_wait(200000);
+          dist2 = dist;
         }
-        Sleep(100);
-//        ulapi_wait(200000);
-        dist2 = dist;
-      }
-#endif
+      } // if (useBlocking)
     }
     else
     {
@@ -1168,8 +1217,39 @@ namespace crpi_robot
 
   LIBRARY_API CanonReturn CrpiUniversal::SetParameter (const char *paramName, void *paramVal)
   {
-    //! Not yet implemented
-    return CANON_REJECT;
+    if (strcmp(paramName, "freedrive") != 0 && strcmp(paramName, "endfreedrive") != 0)
+    {
+      return CANON_REJECT;
+    }
+
+    bool changed = false;
+
+    handle_.moveMe.str(string());
+    handle_.moveMe << "def myProg():\n";
+    if (strcmp(paramName, "freedrive") == 0)
+    {
+      handle_.moveMe << "def myFunk():\n";
+      handle_.moveMe << "\twhile(True):\n";
+      handle_.moveMe << "\t\tfreedrive_mode()\n";
+      handle_.moveMe << "\t\tsync()\n";
+      handle_.moveMe << "\tend\n";
+      handle_.moveMe << "end\n";
+
+    }
+    else
+    {
+      //! Disable force mode
+      handle_.moveMe << "end_freedrive_mode()\n";
+    }
+    handle_.moveMe << "end\n";    
+
+    if (!send())
+    {
+      //! error sending
+      return CANON_FAILURE;
+    }
+
+    return CANON_SUCCESS;
   }
 
 
@@ -1275,6 +1355,28 @@ namespace crpi_robot
     }
     return CANON_SUCCESS;
   }
+
+
+  LIBRARY_API CanonReturn CrpiUniversal::MoveBase (robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
+  LIBRARY_API CanonReturn CrpiUniversal::PointHead (robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
+  LIBRARY_API CanonReturn CrpiUniversal::PointAppendage (CanonRobotAppendage app_ID,
+                                                         robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
   
 
   LIBRARY_API bool CrpiUniversal::generateMove (char moveType, char posType, char deltaType, vector<double> &input)
@@ -1296,7 +1398,6 @@ namespace crpi_robot
     if (!state)
     {
       //! Invalid arguments generating move
-      cout << "bad move" << endl;
       return false;
     }
     
@@ -1402,57 +1503,64 @@ namespace crpi_robot
     case 'F':
       if (handle_.curTool < 0)
       {
-        cout << "bad tool" << endl;
         //! Cannot initiate force control without tool definition
         return false;
       }
 
       if (subType == 'E')
       {
-        handle_.moveMe << "  set_payload(" << params_.tools.at(handle_.curTool).mass << ", ("
-                       << (params_.tools.at(handle_.curTool).centerMass.x / 1000.0f) << ", "
-                       << (params_.tools.at(handle_.curTool).centerMass.y / 1000.0f) << ", "
-                       << (params_.tools.at(handle_.curTool).centerMass.z / 1000.0f) << "))\n";
+        handle_.moveMe << "def myFunk():\n";
+        //handle_.moveMe << "  set_payload(" << params_.tools.at(handle_.curTool).mass << ", ("
+        //               << (params_.tools.at(handle_.curTool).centerMass.x / 1000.0f) << ", "
+        //               << (params_.tools.at(handle_.curTool).centerMass.y / 1000.0f) << ", "
+        //               << (params_.tools.at(handle_.curTool).centerMass.z / 1000.0f) << "))\n";
         matrix rot(3, 3);
         vector<double> euler;
         euler.push_back(params_.mounting->xrot);
         euler.push_back(params_.mounting->yrot);
         euler.push_back(params_.mounting->zrot);
         rot.rotEulerMatrixConvert(euler);
-        handle_.moveMe << "  set_gravity([" << (9.82f * rot.at(2, 0)) << ", " << (9.82f * rot.at(2, 1)) << ", "
-                       << (9.82f * rot.at(2, 2)) << "])\n";
-        //handle_.moveMe << "  set_gravity([0.0, -6.943788591251898, -6.943788591251896])\n";
-        handle_.moveMe << "  def Walk():\n";
-        handle_.moveMe << "    thread Force_properties_calculation_thread():\n";
-        handle_.moveMe << "      while (True):\n";
-        //handle_.moveMe << "        force_mode(tool_pose(), [1, 1, 1, 0, 0, 0], [0.0, 0.0, 5.0, 0.0, 0.0, 0.0], 2, [0.2, 0.2, 0.2, 0.17453292519943295, 0.17453292519943295, 0.17453292519943295])\n";
-        handle_.moveMe << "        force_mode(p[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [1, 1, 1, 0, 0, 0], [20.0, 20.0, 20.0, 0.0, 0.0, 0.0], 2, [0.1, 0.1, 0.015, 0.17453292519943295, 0.17453292519943295, 0.17453292519943295])\n";
-        handle_.moveMe << "        sync()\n";
-        handle_.moveMe << "      end\n";
+        //handle_.moveMe << "  set_gravity([" << (9.82f * rot.at(2, 0)) << ", " << (9.82f * rot.at(2, 1)) << ", "
+        //               << (9.82f * rot.at(2, 2)) << "])\n";
+        handle_.moveMe << "  thread Force_properties_calculation_thread_1():\n";
+        handle_.moveMe << "    while (True):\n";
+        //handle_.moveMe << "      force_mode(p[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0, 0, 1, 0, 0, 0], [0.0, 0.0, 30.0, 0.0, 0.0, 0.0], 3, [0.15, 0.15, 0.25, 0.17, 0.17, 0.17])\n";
+        handle_.moveMe << "      force_mode(tool_pose(), [0, 0, 1, 0, 0, 0], [0.0, 0.0, 30.0, 0.0, 0.0, 0.0], 2, [0.2, 0.2, 0.2, 0.17453292519943295, 0.17453292519943295, 0.17453292519943295])\n";
+//        handle_.moveMe << "      force_mode(p[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0, 0, 1, 0, 0, 0], [0.0, 0.0, 20.0, 0.0, 0.0, 0.0], 2, [0.1, 0.1, 0.015, 0.17453292519943295, 0.17453292519943295, 0.17453292519943295])\n";
+        handle_.moveMe << "      sync()\n";
         handle_.moveMe << "    end\n";
-        handle_.moveMe << "    global thread_handler = run Force_properties_calculation_thread()\n";
+        handle_.moveMe << "  end\n";
+        handle_.moveMe << "  global thread_handler_1 = run Force_properties_calculation_thread_1()\n";
+
+        //handle_.moveMe << "  global cloud = tool_pose()\n";// p[0.0000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000]\n";
+        handle_.moveMe << "  global X = " << input.at(0) << "\n";
+        handle_.moveMe << "  global Y = " << input.at(1) << "\n";
+        handle_.moveMe << "  global Z = " << input.at(2) << "\n";
+        handle_.moveMe << "  global XR = " << input.at(3) << "\n";
+        handle_.moveMe << "  global YR = " << input.at(4) << "\n";
+        handle_.moveMe << "  global ZR = " << input.at(5) << "\n";
 
         //! Enable force mode
         if (input.size() == 6)
         {
-          handle_.moveMe << "    global pt = pose_trans(cloud, p[X,Y,Z,0,0,0])\n";
-          handle_.moveMe << "    movel(pose_trans(p[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], pt), a=0.1, v=0.02)\n";
+          //handle_.moveMe << "  global pt = pose_trans(cloud, p[X,Y,Z,0,0,0])\n";
+//          handle_.moveMe << "    movel(pose_trans(p[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], pt), a=1.39, v=1.04)\n";
+          handle_.moveMe << "  movej(p[X, Y, Z, XR, YR, ZR], a=0.39, v=0.25)\n";
+//          handle_.moveMe << "    movel(p[" << input.at(0) << ", " << input.at(1) << ", " << input.at(2) << ", " << input.at(3)
+//                         << ", " << input.at(4) << ", " << input.at(5) << "], a=0.39, v=0.25)\n";
         }
-        handle_.moveMe << "    kill thread_handler\n";
-        handle_.moveMe << "    end_force_mode()\n";
-        handle_.moveMe << "  end\n"; //! "Walk()"
+        handle_.moveMe << "  kill thread_handler_1\n";
+        //handle_.moveMe << "    end_force_mode()\n";
+  //      handle_.moveMe << "  end\n"; //! "Walk()"
         //! Program begins here
-        handle_.moveMe << "  global cloud = tool_pose()\n";// p[0.0000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000]\n";
-        handle_.moveMe << "  global X = " << input.at(0) << "\n";
-        handle_.moveMe << "  global Y = " << input.at(1) << "\n";
-        handle_.moveMe << "  global Z = " << input.at(2) << "\n";
-        handle_.moveMe << "  Walk()\n";
+//        handle_.moveMe << "  Walk()\n";
       }
       else
       {
         //! Disable force mode
-        handle_.moveMe << "end_force_mode()\n";
+        handle_.moveMe << "  end_force_mode()\n";
       }
+      handle_.moveMe << "end\n";
 
       break;
     default:
@@ -1489,7 +1597,7 @@ namespace crpi_robot
 #endif
 
 
-//      cout << handle_.moveMe.str().c_str() << endl;
+      //cout << handle_.moveMe.str().c_str() << endl;
 #ifndef NEWTCPIP
       sent = ulapi_socket_write (client, handle_.moveMe.str().c_str(), strlen(handle_.moveMe.str().c_str()) + 1);
 #else

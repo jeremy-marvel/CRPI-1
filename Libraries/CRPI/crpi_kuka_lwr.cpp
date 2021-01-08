@@ -376,7 +376,7 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiKukaLWR::MoveStraightTo (robotPose &pose)
+  LIBRARY_API CanonReturn CrpiKukaLWR::MoveStraightTo (robotPose &pose, bool useBlocking)
   {
     //! Construct message
     vector<double> target;
@@ -440,7 +440,7 @@ namespace crpi_robot
     //! this method
     for (int x = 0; x < numPoses; ++x)
     {
-      status &= (MoveTo (poses[x]) == CANON_SUCCESS);
+      status &= (MoveTo (poses[x], true) == CANON_SUCCESS);
       if (!status)
       {
         //! Error when executing multi move
@@ -452,7 +452,7 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiKukaLWR::MoveTo (robotPose &pose)
+  LIBRARY_API CanonReturn CrpiKukaLWR::MoveTo (robotPose &pose, bool useBlocking)
   {
     //! Construct message
     vector<double> target;
@@ -872,7 +872,7 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiKukaLWR::MoveToAxisTarget (robotAxes &axes)
+  LIBRARY_API CanonReturn CrpiKukaLWR::MoveToAxisTarget (robotAxes &axes, bool useBlocking)
   {
     //! Construct message
     vector<double> target;
@@ -1064,6 +1064,28 @@ namespace crpi_robot
     return CANON_REJECT;
   }
   
+
+  LIBRARY_API CanonReturn CrpiKukaLWR::MoveBase (robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
+  LIBRARY_API CanonReturn CrpiKukaLWR::PointHead (robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
+  LIBRARY_API CanonReturn CrpiKukaLWR::PointAppendage (CanonRobotAppendage app_ID,
+                                                       robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
 
   LIBRARY_API bool CrpiKukaLWR::generateMove (char moveType, char posType, char deltaType, vector<double> &input)
   {

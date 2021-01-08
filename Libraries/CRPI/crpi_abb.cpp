@@ -13,8 +13,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "crpi_abb.h"
+#if defined (_MSC_VER)
 #include "..\Math\MatrixMath.h"
-#include <fstream>
+#elif defined(__GNUC__)
+#include "../Math/MatrixMath.h"
+#endif
 
 using namespace std;
 
@@ -160,7 +163,7 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiAbb::MoveStraightTo (robotPose &pose)
+  LIBRARY_API CanonReturn CrpiAbb::MoveStraightTo (robotPose &pose, bool useBlocking)
   {
     //! Construct message
     vector<double> target;
@@ -242,7 +245,7 @@ namespace crpi_robot
     //! this method
     for (int x = 0; x < numPoses; ++x)
     {
-      status &= (MoveTo (poses[x]) == CANON_SUCCESS);
+      status &= (MoveTo (poses[x], true) == CANON_SUCCESS);
       if (!status)
       {
         //! Error when executing multi move
@@ -254,7 +257,7 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiAbb::MoveTo (robotPose &pose)
+  LIBRARY_API CanonReturn CrpiAbb::MoveTo (robotPose &pose, bool useBlocking)
   {
     //! Construct message
     vector<double> target;
@@ -611,7 +614,7 @@ namespace crpi_robot
   }
 
 
-  LIBRARY_API CanonReturn CrpiAbb::MoveToAxisTarget (robotAxes &axes)
+  LIBRARY_API CanonReturn CrpiAbb::MoveToAxisTarget (robotAxes &axes, bool useBlocking)
   {
     //! Construct message
     vector<double> target;
@@ -774,13 +777,33 @@ namespace crpi_robot
     param.push_back(sendme*1000.0f);
 
     generateParameter('S', 'R', param);
-    if (send())
-    {
-      //! TODO
-    }
 
-    //! Not yet implemented
-    return CANON_REJECT;
+    //! Send message to robot
+    if (!send())
+    {
+      //! error sending
+      printf("failed send\n");
+      ulapi_mutex_give(ka_.handle);
+      return CANON_FAILURE;
+    }
+    //! Wait for response from robot
+    if (!get())
+    {
+      printf("failed get\n");
+      ulapi_mutex_give(ka_.handle);
+      return CANON_FAILURE;
+    }
+    ulapi_mutex_give(ka_.handle);
+    if (mssgBuffer_[1] == '1')
+    {
+      //printf("got message\n");
+      return CANON_SUCCESS;
+    }
+    else
+    {
+      //printf("bad return\n");
+      return CANON_FAILURE;
+    }
   }
 
 
@@ -832,6 +855,29 @@ namespace crpi_robot
     //! Not yet implemented
     return CANON_REJECT;
   }
+
+  LIBRARY_API CanonReturn CrpiAbb::MoveBase (robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
+  LIBRARY_API CanonReturn CrpiAbb::PointHead (robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
+  LIBRARY_API CanonReturn CrpiAbb::PointAppendage (CanonRobotAppendage app_ID,
+                                                   robotPose &to)
+  {
+    //! Not applicable
+    return CANON_REJECT;
+  }
+
+
   
 
   LIBRARY_API bool CrpiAbb::generateMove (char moveType, char posType, char deltaType, vector<double> &input)

@@ -17,6 +17,8 @@
 
 #define OLDSERIAL
 
+#ifdef WIN32
+
 #ifdef OLDSERIAL
 #include "..\Serial\serial.h"
 using namespace Network;
@@ -24,9 +26,24 @@ using namespace Network;
 #include "ulapi.h"
 #endif
 
+#pragma warning (disable: 4251)
+
+#elif defined(__GNUC__)
+
+#ifdef OLDSERIAL
+#include "../Serial/serial.h"
+using namespace Network;
+#else
+#include "../ulapi/src/ulapi.h"
+#endif
+
+#endif //linux compatibility
+
 #include "crpi.h"
 
-#pragma warning (disable: 4251)
+
+
+
 
 #include <vector>
 #include <sstream>
@@ -94,12 +111,13 @@ namespace crpi_robot
 
     //! @brief Move the robot in a straight line from the current pose to a new pose and stop there
     //!
-    //! @param pose The target 6DOF pose for the robot
+    //! @param pose        The target 6DOF pose for the robot
+    //! @param useBlocking Whether or not to use additional code to ensure blocking on motion commands
     //!
     //! @return SUCCESS if command is accepted and is executed successfully, REJECT if the command is
     //!         not accepted, and FAILURE if the command is accepted but not executed successfully
     //!
-    CanonReturn MoveStraightTo (robotPose &pose);
+    CanonReturn MoveStraightTo (robotPose &pose, bool useBlocking);
 
     //! @brief Move the controlled point along a trajectory passing through or near all but the last
     //!        of a series of poses, and then stop at the last pose
@@ -129,12 +147,13 @@ namespace crpi_robot
     //! @brief Move the controlled pose along any convenient trajectory from the current pose to the
     //!        target pose, and then stop.
     //!
-    //! @param pose The target 6DOF Cartesian pose for the robot's TCP in Cartesian space coordinates
+    //! @param pose        The target 6DOF Cartesian pose for the robot's TCP in Cartesian space coordinates
+    //! @param useBlocking Whether or not to use additional code to ensure blocking on motion commands
     //!
     //! @return SUCCESS if command is accepted and is executed successfully, REJECT if the command is
     //!         not accepted, and FAILURE if the command is accepted but not executed successfully
     //!
-    CanonReturn MoveTo (robotPose &pose);
+    CanonReturn MoveTo (robotPose &pose, bool useBlocking);
 
     //! @brief Get feedback from the robot regarding its current axis configuration
     //!
@@ -215,7 +234,7 @@ namespace crpi_robot
     //! @return SUCCESS if command is accepted and is executed successfully, REJECT if the command is
     //!         not accepted, and FAILURE if the command is accepted but not executed successfully
     //!
-    CanonReturn MoveToAxisTarget (robotAxes &axes);
+    CanonReturn MoveToAxisTarget (robotAxes &axes, bool useBlocking);
 
     //! @brief Set the accerlation for the controlled pose to the given value in length units per
     //!        second per second
@@ -359,6 +378,42 @@ namespace crpi_robot
     //!         not accepted, and FAILURE if the command is accepted but not executed successfully
     //!
     CanonReturn StopMotion (int condition = 2);
+
+    //! @brief Move the base to a specified position and orientation on a horizontal plane
+    //!
+    //! @param to Target position in the robot's world frame toward which the robot will attempt to move
+    //!
+    //! @return SUCCESS if command is accepted and is executed successfully, REJECT if the command is
+    //!         not accepted, and FAILURE if the command is accepted but not executed successfully
+    //!
+    //! @note This function only uses the x, y, and zrot components of the pose object
+    //!
+    CanonReturn MoveBase(robotPose &to);
+
+    //! @brief Point the head at an location relative to the robot’s base coordinate frame
+    //!
+    //! @param to Target pose toward which the head is attempting to point
+    //!
+    //! @return SUCCESS if command is accepted and is executed successfully, REJECT if the command is
+    //!         not accepted, and FAILURE if the command is accepted but not executed successfully
+    //!
+    //! @note This function only uses the x, y, and z components of the pose object
+    //!
+    CanonReturn PointHead(robotPose &to);
+
+    //! @brief Point the appendage at a location relative to the robot’s base coordinate frame
+    //!
+    //! @param app_ID Identifier of which appendage is being pointed
+    //! @param to     Target pose toward which the appendage is attempting to point
+    //!
+    //! @return SUCCESS if command is accepted and is executed successfully, REJECT if the command is
+    //!         not accepted, and FAILURE if the command is accepted but not executed successfully
+    //!
+    //! @note This function only uses the x, y, and z components of the pose object
+    //! @note It is not always possible for the indicated appendage to point exactly along the vector
+    //!       specified.  The robot should attempt to get as close as possible.
+    //!
+    CanonReturn PointAppendage(CanonRobotAppendage app_ID, robotPose &to);
 
   private:
     //! @brief Whether or not we are using socket communications for message passing with the robot
